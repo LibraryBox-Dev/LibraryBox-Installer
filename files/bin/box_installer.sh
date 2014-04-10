@@ -27,6 +27,13 @@ _signaling_start(){
 	return 0
 }
 
+_signaling_stop(){
+	if [ -e $1/trigger ] ; then
+		echo "none" > $1/trigger
+	fi
+	[ -e $1/brightness ] && echo "1" > $1/brightness
+	return 0
+}
 
 calc_next_step() {
 
