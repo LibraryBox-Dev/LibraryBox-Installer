@@ -5,10 +5,15 @@ PID=/var/run/auto_syslogd
 
 auto_package=/mnt/usb/install/auto_package
 auto_package_done=/mnt/usb/install/auto_package_done
+logfile=/mnt/usb/install.log
 
 # Initiates the log facility and starts the installation
 if  [ -e /mnt/usb/install/auto_package ] ||  !  /etc/init.d/ext enabled  ; then
-	start-stop-daemon -b -S -m -p $PID -x syslogd -- -n -L -R 192.168.1.2:9999
+	[ -e $logfile ] && echo "---------------------------------------------" >> $logfile
+	start-stop-daemon -b -S -m -p $PID -x syslogd -- -n -L -R 192.168.1.2:9999 
+	## Async logwrite to USB disc in a subtask
+	logread -f >> $logfile &
+
 	/bin/box_installer.sh 2>&1 | logger 
 	# create the file always
 
