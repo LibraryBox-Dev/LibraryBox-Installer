@@ -18,9 +18,11 @@ calc_next_step() {
 
 	case $NEXT_STEP in
 
-	 'run_test') NEXT_STEP="run_prepare_extendRoot" ;;
+	 'run_test') NEXT_STEP="run_signaling_extendRoot_start" ;;
+	 'run_signaling_extendRoot_start') NEXT_STEP="run_prepare_extendRoot" ;;
 	 'run_prepare_extendRoot') NEXT_STEP="run_init_extendRoot" ;;
-	 'run_init_extendRoot') NEXT_STEP="run_fake_opkg_update" ;;
+	 'run_init_extendRoot') NEXT_STEP="run_signaling_extendRoot_stop" ;;
+	 'run_signaling_extendRoot_stop') NEXT_STEP="run_fake_opkg_update" ;;
 	 'run_fake_opkg_update') NEXT_STEP="run_install_package" ;;
 	 'run_install_package') NEXT_STEP="exit" ;;
 	 *) echo "$0 : unknown previous step..exiting"
@@ -45,6 +47,15 @@ run_test() {
 	fi
 }
 
+
+run_signaling_extendRoot_start(){
+	#Switch Network-light online, that extendRoot init is running
+	if [ -e /sys/class/leds/*wlan/trigger ] ; then
+		[ grep -q timer /sys/class/leds/*wlan/trigger ] && \
+			echo "timer" > /sys/class/leds/*wlan/trigger
+	fi
+}
+
 run_prepare_extendRoot(){
 	#sets flags for installation of extendRoot to prevent the package asking the user
 	echo "$0 : configure initi step for extendRoot"
@@ -62,6 +73,15 @@ run_init_extendRoot() {
 	[ $? ] || exit $?
 	echo "$0 : Fixing paths"
 	/bin/ext_path_fixer
+}
+
+# Signalize with a steady wifi light, that extendRoot initialization is done
+run_signaling_extendRoot_stop(){
+	if [ -e /sys/class/leds/*wlan/trigger ] ; then
+		echo "none" > /sys/class/leds/*wlan/trigger
+	fi
+	[ -e /sys/class/leds/*wlan/brightness ] && echo "1" > /sys/class/leds/*wlan/brightness
+	return 0
 }
 
 run_fake_opkg_update() {
