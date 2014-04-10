@@ -14,6 +14,20 @@ OPKG_DEST="$OPKG $INSTALL_DESTINATION "
 NEXT_STEP="run_test"
 ALL_STEPS="yes"
 
+LED_EXTENDROOT=/sys/class/leds/*wlan
+LED_PACKAGE=/sys/class/leds/*[usb,3g]
+
+
+
+_signaling_start(){
+	if [ -e $1/trigger ] ; then
+		[ grep -q timer $1/trigger ] && \
+			echo "timer" > $1/trigger
+	fi
+	return 0
+}
+
+
 calc_next_step() {
 
 	case $NEXT_STEP in
@@ -23,8 +37,10 @@ calc_next_step() {
 	 'run_prepare_extendRoot') NEXT_STEP="run_init_extendRoot" ;;
 	 'run_init_extendRoot') NEXT_STEP="run_signaling_extendRoot_stop" ;;
 	 'run_signaling_extendRoot_stop') NEXT_STEP="run_fake_opkg_update" ;;
-	 'run_fake_opkg_update') NEXT_STEP="run_install_package" ;;
-	 'run_install_package') NEXT_STEP="exit" ;;
+	 'run_fake_opkg_update') NEXT_STEP="run_signaling_package_start" ;;
+	 'run_signaling_package_start') NEXT_STEP="run_install_package" ;;
+	 'run_install_package') NEXT_STEP="run_signaling_package_stop" ;;
+	 'run_signaling_package_stop') NEXT_STEP="exit" ;;
 	 *) echo "$0 : unknown previous step..exiting"
 	    exit 255 ;;
 	esac
@@ -49,11 +65,9 @@ run_test() {
 
 
 run_signaling_extendRoot_start(){
-	#Switch Network-light online, that extendRoot init is running
-	if [ -e /sys/class/leds/*wlan/trigger ] ; then
-		[ grep -q timer /sys/class/leds/*wlan/trigger ] && \
-			echo "timer" > /sys/class/leds/*wlan/trigger
-	fi
+	#Switch wlan-light online, that extendRoot init is running
+	_signaling_start  "$LED_EXTENDROOT"
+	return 0
 }
 
 run_prepare_extendRoot(){
@@ -77,11 +91,7 @@ run_init_extendRoot() {
 
 # Signalize with a steady wifi light, that extendRoot initialization is done
 run_signaling_extendRoot_stop(){
-	if [ -e /sys/class/leds/*wlan/trigger ] ; then
-		echo "none" > /sys/class/leds/*wlan/trigger
-	fi
-	[ -e /sys/class/leds/*wlan/brightness ] && echo "1" > /sys/class/leds/*wlan/brightness
-	return 0
+	_signaling_stop "$LED_EXTENDROOT"
 }
 
 run_fake_opkg_update() {
@@ -92,6 +102,11 @@ run_fake_opkg_update() {
 	[ $? ] || exit $?
 	echo "$0 : .. doing it for Piratebox repository (optional)"
 	cp $CACHE_LOCATION/Package.gz_piratebox /var/opkg-lists/piratebox
+}
+
+run_signaling_package_start(){
+	#Blinking 3g/USB LED 
+	_signaling_start "$LED_PACKAGE"
 }
 
 run_install_package(){
@@ -107,6 +122,13 @@ run_install_package(){
 	$OPKG_DEST install $INSTALL_PACKAGE
 	[ $? ] || exit $?
 }
+
+run_signaling_package_stop(){
+        #Blinking 3g/USB LED 
+        _signaling_stop "$LED_PACKAGE"
+}
+
+
 
 # Implement and option to process single steps
 if [ ! -z $1 ] ; then
