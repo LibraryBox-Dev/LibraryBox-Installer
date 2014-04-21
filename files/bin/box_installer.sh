@@ -68,7 +68,7 @@ run_fake_opkg_update() {
 	echo "$0 : Getting main Repository from /etc/opkg.conf"
 	local repo=$(head -n1 /etc/opkg.conf  | cut -d ' ' -f 2)
 	echo "$0 : Doing fake opkg update (copy from cache folder ($repo)"
-	cp $CACHE_LOCATION/Package.gz_attitude_adjustment /var/opkg-lists/$repo
+	cp $CACHE_LOCATION/Package.gz_main /var/opkg-lists/$repo
 	[ $? ] || exit $?
 	echo "$0 : .. doing it for Piratebox repository (optional)"
 	cp $CACHE_LOCATION/Package.gz_piratebox /var/opkg-lists/piratebox
