@@ -11,12 +11,8 @@ logfile=/mnt/usb/install.log
 if  [ -e /mnt/usb/install/auto_package ] ||  !  /etc/init.d/ext enabled  ; then
 	[ -e $logfile ] && echo "---------------------------------------------" >> $logfile
 	start-stop-daemon -b -S -m -p $PID -x syslogd -- -n -L -R 192.168.1.2:9999 
-	## Async logwrite to USB disc in a subtask
-	logread -f >> $logfile &
 
 	/bin/box_installer.sh 2>&1 | logger 
-	# create the file always
-
 
 	#Count containing lines, and only shift first to "done"
 	package_lines=`cat $auto_package | wc -l`
@@ -28,6 +24,10 @@ if  [ -e /mnt/usb/install/auto_package ] ||  !  /etc/init.d/ext enabled  ; then
 	else
   		mv $auto_package  $auto_package_done
 	fi
+
+	## Copy log to USB disc
+	echo "$0 : Logging install log to USB-Stick"
+	cat /var/log/messages >>  $logfile
 
 	logger "Initiating reboot after installation"
 	reboot
