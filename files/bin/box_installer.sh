@@ -15,23 +15,19 @@ NEXT_STEP="run_test"
 ALL_STEPS="yes"
 
 LED_EXTENDROOT=/sys/class/leds/*wlan
-LED_PACKAGE=/sys/class/leds/*[usb,3g]
+LED_PACKAGE_1=/sys/class/leds/*3g
+LED_PACKAGE_2=/sys/class/leds/*3g
 
 
 
 _signaling_start(){
-	if [ -e $1/trigger ] ; then
-		for file in  $1 ; do echo "timer" > $file/trigger ; done
-	fi
+	for file in  $1 ; do echo "timer" > $file/trigger ; done
 	return 0
 }
 
 _signaling_stop(){
-	if [ -e $1/trigger ] ; then
-		echo "none" > $1/trigger
-		for file in  $1 ; do echo "none" > $file/trigger ; done
-	fi
-	[ -e $1/brightness ] && for file in  $1 ; do echo "1" > $file/brightness ; done
+	for file in  $1 ; do echo "none" > $file/trigger ; done
+	for file in  $1 ; do echo "1" > $file/brightness ; done
 	return 0
 }
 
@@ -113,7 +109,8 @@ run_fake_opkg_update() {
 
 run_signaling_package_start(){
 	#Blinking 3g/USB LED 
-	_signaling_start "$LED_PACKAGE"
+	_signaling_start "$LED_PACKAGE_1"
+	_signaling_start "$LED_PACKAGE_2"
 }
 
 run_install_package(){
@@ -132,7 +129,8 @@ run_install_package(){
 
 run_signaling_package_stop(){
         #Blinking 3g/USB LED 
-        _signaling_stop "$LED_PACKAGE"
+        _signaling_stop "$LED_PACKAGE_1"
+        _signaling_stop "$LED_PACKAGE_2"
 }
 
 
