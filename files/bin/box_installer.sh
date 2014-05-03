@@ -16,7 +16,7 @@ ALL_STEPS="yes"
 
 LED_EXTENDROOT=/sys/class/leds/*wlan
 LED_PACKAGE_1=/sys/class/leds/*3g
-LED_PACKAGE_2=/sys/class/leds/*3g
+LED_PACKAGE_2=/sys/class/leds/*usb
 
 
 
