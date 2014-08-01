@@ -39,7 +39,8 @@ calc_next_step() {
 	 'run_signaling_extendRoot_start') NEXT_STEP="run_prepare_extendRoot" ;;
 	 'run_prepare_extendRoot') NEXT_STEP="run_init_extendRoot" ;;
 	 'run_init_extendRoot') NEXT_STEP="run_signaling_extendRoot_stop" ;;
-	 'run_signaling_extendRoot_stop') NEXT_STEP="run_fake_opkg_update" ;;
+	 'run_signaling_extendRoot_stop') NEXT_STEP="run_test_installation_destination" ;;
+	 'run_test_installation_destination') NEXT_STEP="run_signaling_package_start" ;;
 	 'run_fake_opkg_update') NEXT_STEP="run_signaling_package_start" ;;
 	 'run_signaling_package_start') NEXT_STEP="run_install_package" ;;
 	 'run_install_package') NEXT_STEP="run_signaling_package_stop" ;;
@@ -96,6 +97,27 @@ run_init_extendRoot() {
 run_signaling_extendRoot_stop(){
 	_signaling_stop "$LED_EXTENDROOT"
 }
+
+run_test_installation_destination(){
+	echo "$0 : Testing if installation destination by extendRoot is available."
+	/etc/init.d/ext is_ready
+	if [ $? ] ; then
+		echo "$0 : Installation destination is available."
+	else
+		echo "$0 : Something happend to extendRoot filesystem. Printing debug output..."
+		echo "$0 : Mount output"
+		mount
+		echo "$0 : dmesg | grep sd "
+		dmesg | grep sd
+		echo "$0 : dmesg | grep loop"
+		dmesg | grep loop
+		echo "$0 : dmesg | grep ext"
+		dmesg | grep ext
+		echo "$0 : Exiting box-installer routine"
+		exit 255
+	fi 
+}
+
 
 run_fake_opkg_update() {
 	echo "$0 : Getting main Repository from /etc/opkg.conf"
