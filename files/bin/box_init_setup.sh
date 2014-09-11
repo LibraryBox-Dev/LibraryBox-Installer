@@ -114,7 +114,7 @@ _switch_minidlna_() {
 		echo "minidlna disabled and stopped"
 		return 0
 	else
-		$MINIDLNA_INITD enabled
+		$MINIDLNA_INITD enable
 
 
 		MINIDLNA_PIRATEBOX_OPENWRT_CONFIG="/opt/piratebox/src/openwrt.example.minidlna"
