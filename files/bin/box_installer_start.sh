@@ -7,12 +7,45 @@ auto_package=/mnt/usb/install/auto_package
 auto_package_done=/mnt/usb/install/auto_package_done
 logfile=/mnt/usb/install.log
 
-# Initiates the log facility and starts the installation
-if  [ -e /mnt/usb/install/auto_package ] ||  !  /etc/init.d/ext enabled  ; then
-	[ -e $logfile ] && echo "---------------------------------------------" >> $logfile
-	start-stop-daemon -b -S -m -p $PID -x syslogd -- -n -L -R 192.168.1.2:9999 
+start_log(){
+##Central function for logging;
+##  only start logging if not already online
+	if [ ! -e $PID ]  ; then
+		[ -e $logfile ] && echo "---------------------------------------------" >> $logfile
+		start-stop-daemon -b -S -m -p $PID -x syslogd -- -n -L -R 192.168.1.2:9999 
+	fi
+}
 
-	/bin/box_installer.sh 2>&1 | logger 
+finish_log(){
+	## Copy log to USB disc
+	echo "$0 : Logging install log to USB-Stick"
+	cat /var/log/messages >>  $logfile
+}
+
+if ! /etc/init.d/ext enabled ; then
+	start_log
+
+	logger "Doing extendRoot initilization"
+
+	/bin/box_installer.sh -e 2>&1 | logger
+
+	RC=$?
+	if [ "$RC" -gt "0" ] ; then
+		logger "An error occured - Stopping process here ; $RC"
+		finish_log
+		exit $RC
+	fi
+
+	finish_log
+fi
+
+
+# Initiates the log facility and starts the installation
+if  [ -e /mnt/usb/install/auto_package ]; then
+
+	start_log
+
+	/bin/box_installer.sh -p 2>&1 | logger 
 
 
 	# Always move the first line only
@@ -28,13 +61,12 @@ if  [ -e /mnt/usb/install/auto_package ] ||  !  /etc/init.d/ext enabled  ; then
 		rm $auto_package
 	fi
 
-	## Copy log to USB disc
-	echo "$0 : Logging install log to USB-Stick"
-	cat /var/log/messages >>  $logfile
 
 	logger "Initiating reboot after installation"
-	reboot
+	finish_log
+	sync && reboot
 else
 	echo "Does not run because /mnt/usb/install/auto_package  does not exists"
 fi
+
 
