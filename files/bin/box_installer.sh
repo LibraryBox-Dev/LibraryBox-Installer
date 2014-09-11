@@ -108,8 +108,8 @@ run_signaling_extendRoot_stop(){
 
 run_test_installation_destination(){
 	echo "$0 : Testing if installation destination by extendRoot is available."
-	/etc/init.d/ext is_ready
-	if [ $? ] ; then
+	/etc/init.d/ext is_ready && OK="yes"
+	if [ "$OK" = "yes"  ] ; then
 		echo "$0 : Installation destination is available."
 	else
 		echo "$0 : Something happend to extendRoot filesystem. Printing debug output..."
@@ -128,6 +128,8 @@ run_test_installation_destination(){
 
 
 run_fake_opkg_update() {
+	echo "$0 : Creating opkg-lists folder, if missing"
+	mkdir -p /var/opkg-lists
 	echo "$0 : Getting main Repository from /etc/opkg.conf"
 	local repo=$(head -n1 /etc/opkg.conf  | cut -d ' ' -f 2)
 	echo "$0 : Doing fake opkg update (copy from cache folder ($repo)"
@@ -194,7 +196,7 @@ while getopts ":epon:" opt; do
 done
 
 if [ "$DO_EXT" = "no" ] && [ "$DO_PACKAGE" = "no" ] ; then
-	usage()
+	usage
 fi
 
 ## Default parameter starts with extendRoot 
