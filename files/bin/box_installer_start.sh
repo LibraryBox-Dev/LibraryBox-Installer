@@ -7,6 +7,8 @@ auto_package=/mnt/usb/install/auto_package
 auto_package_done=/mnt/usb/install/auto_package_done
 logfile=/mnt/usb/install.log
 
+new_image_location=/mnt/usb/auto_flash
+
 start_log(){
 ##Central function for logging;
 ##  only start logging if not already online
@@ -21,6 +23,28 @@ finish_log(){
 	echo "$0 : Logging install log to USB-Stick"
 	cat /var/log/messages >>  $logfile
 }
+
+
+if [ ls -1  "${new_image_location}"/openwrt-*.bin >> /dev/null 2>&1  ]  ; then
+	## Found image(s) at the download location
+
+	### get system var uci get box-installer.
+	model_type=""
+
+	found_images=$( ls  ${new_image_location}/openwrt-*${model_type}*.bin | wc -w )
+
+	if [ "$found_images" -eq 1 ] ; then
+		cnt=$( ls $new_image_location/openwrt-${model_type}*.bin.* )
+		image_path=$( ls -1 ${new_image_location}/openwrt-${model_type}*.bin )
+		logger "$0 : Creating backup of image file"
+		mv -v $image_path     "${$image_path}.${cnt}" | logger 
+		sysupgrade -n  "${$image_path}.${cnt}" 2>&1  | logger
+	else
+		logger "$0 : More than one image found fitting to: "
+		logger "$0 :      modeltype: ${model_type} "
+		ls  ${new_image_location}/openwrt-${model_type}*.bin | logger
+	fi
+fi
 
 if ! /etc/init.d/ext enabled ; then
 	start_log
