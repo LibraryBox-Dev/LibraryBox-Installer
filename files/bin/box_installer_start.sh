@@ -7,6 +7,8 @@ auto_package=/mnt/usb/install/auto_package
 auto_package_done=/mnt/usb/install/auto_package_done
 logfile=/mnt/usb/install.log
 
+stopfile=/mnt/usb/stop.txt
+
 start_log(){
 ##Central function for logging;
 ##  only start logging if not already online
@@ -22,16 +24,25 @@ finish_log(){
 	cat /var/log/messages >>  $logfile
 }
 
-if ! /etc/init.d/ext enabled ; then
+if [ -e $stopfile ] ; then
+	start_log
+	logger "$0 : Stop file detected. Ending processing"
+	rm  $stopfile   2>&1 | logger 
+	logger "$0 : Stop file removed."
+	finish_log
+	exit 0
+fi
+
+if ! /etc/init.d/ext enabled  ; then
 	start_log
 
-	logger "Doing extendRoot initilization"
+	logger "$0 : Doing extendRoot initilization"
 
 	/bin/box_installer.sh -e 2>&1 | logger
 
 	RC=$?
 	if [ "$RC" -gt "0" ] ; then
-		logger "An error occured - Stopping process here ; $RC"
+		logger "$0 : An error occured - Stopping process here ; $RC"
 		finish_log
 		exit $RC
 	fi
@@ -54,7 +65,7 @@ if  [ -e /mnt/usb/install/auto_package ]; then
 	#Count containing lines, and only shift first to "done"
 	package_lines=`cat $auto_package | wc -l`
 	if [ "$package_lines" -gt "1" ] ; then
-		logger "Multiple line auto_package found. Shifting 1st line to auto_package_done"
+		logger "$0 : Multiple line auto_package found. Shifting 1st line to auto_package_done"
 		tail -n +2 $auto_package > /tmp/auto_install_new
 		mv /tmp/auto_install_new $auto_package
 	else
@@ -62,7 +73,7 @@ if  [ -e /mnt/usb/install/auto_package ]; then
 	fi
 
 
-	logger "Initiating reboot after installation"
+	logger "$0 : Initiating reboot after installation"
 	finish_log
 	sync && reboot
 else
