@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 PID=/var/run/auto_syslogd
 
 auto_package=/mnt/usb/install/auto_package
@@ -24,26 +23,44 @@ finish_log(){
 	cat /var/log/messages >>  $logfile
 }
 
+auto_flash_supported(){
+	## Load OpenWRT release file
+	. /etc/openwrt_release
+	SUPPORTED_AUTOFLASH="ar71xx/generic"
 
-if [ ls -1  "${new_image_location}"/openwrt-*.bin >> /dev/null 2>&1  ]  ; then
+	case "$DISTRIB_TARGET" in 
+		"ar71xx/generic"*) \
+			. /lib/ar71xx.sh
+			model_type=$( ar71xx_board_name )
+			echo "$: Model Type ${model_type} identified" | logger 
+			return 0
+			;;
+	esac || return 1  
+}
+
+
+
+if  auto_flash_supported && ls -1  "${new_image_location}"/openwrt-*.bin >> /dev/null 2>&1  ; then
 	## Found image(s) at the download location
-
-	### get system var uci get box-installer.
-	model_type=""
-
 	found_images=$( ls  ${new_image_location}/openwrt-*${model_type}*.bin | wc -w )
 
 	if [ "$found_images" -eq 1 ] ; then
-		cnt=$( ls $new_image_location/openwrt-${model_type}*.bin.* )
-		image_path=$( ls -1 ${new_image_location}/openwrt-${model_type}*.bin )
-		logger "$0 : Creating backup of image file"
-		mv -v $image_path     "${$image_path}.${cnt}" | logger 
-		sysupgrade -n  "${$image_path}.${cnt}" 2>&1  | logger
+		cnt=$( ls $new_image_location/openwrt-*${model_type}*.bin* | wc -w  )
+		image_path=$( ls -1 ${new_image_location}/openwrt-*${model_type}*.bin )
+		echo "$0 : Creating backup of image file - name: ${image_path}.${cnt} "
+		mv  $image_path     "${image_path}.${cnt}" 
+		echo "$0: Copy image to /tmp "
+		filename=$(basename ${image_path} )
+		cp "${image_path}.${cnt}"  "/tmp/${filename}"
+		sysupgrade -n  "/tmp/${filename}"  2>&1  
+		reboot && exit 0 	
 	else
-		logger "$0 : More than one image found fitting to: "
-		logger "$0 :      modeltype: ${model_type} "
-		ls  ${new_image_location}/openwrt-${model_type}*.bin | logger
+		echo "$0 : More than one image found fitting to: "
+		echo "$0 :      modeltype: ${model_type} "
+		ls  ${new_image_location}/openwrt-*${model_type}*.bin 
 	fi
+else
+	 auto_flash_supported || echo "$0 : unsupported architecture for auto flash- ${DISTRIB_TARGET}"
 fi
 
 if ! /etc/init.d/ext enabled ; then
