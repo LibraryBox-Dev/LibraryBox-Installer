@@ -1,11 +1,12 @@
 #!/bin/sh
 
-
 PID=/var/run/auto_syslogd
 
 auto_package=/mnt/usb/install/auto_package
 auto_package_done=/mnt/usb/install/auto_package_done
 logfile=/mnt/usb/install.log
+
+new_image_location=/mnt/usb/auto_flash
 
 start_log(){
 ##Central function for logging;
@@ -21,6 +22,46 @@ finish_log(){
 	echo "$0 : Logging install log to USB-Stick"
 	cat /var/log/messages >>  $logfile
 }
+
+auto_flash_supported(){
+	## Load OpenWRT release file
+	. /etc/openwrt_release
+	SUPPORTED_AUTOFLASH="ar71xx/generic"
+
+	case "$DISTRIB_TARGET" in 
+		"ar71xx/generic"*) \
+			. /lib/ar71xx.sh
+			model_type=$( ar71xx_board_name )
+			echo "$: Model Type ${model_type} identified" | logger 
+			return 0
+			;;
+	esac || return 1  
+}
+
+
+
+if  auto_flash_supported && ls -1  "${new_image_location}"/openwrt-*.bin >> /dev/null 2>&1  ; then
+	## Found image(s) at the download location
+	found_images=$( ls  ${new_image_location}/openwrt-*${model_type}*.bin | wc -w )
+
+	if [ "$found_images" -eq 1 ] ; then
+		cnt=$( ls $new_image_location/openwrt-*${model_type}*.bin* | wc -w  )
+		image_path=$( ls -1 ${new_image_location}/openwrt-*${model_type}*.bin )
+		echo "$0 : Creating backup of image file - name: ${image_path}.${cnt} "
+		mv  $image_path     "${image_path}.${cnt}" 
+		echo "$0: Copy image to /tmp "
+		filename=$(basename ${image_path} )
+		cp "${image_path}.${cnt}"  "/tmp/${filename}"
+		sysupgrade -n  "/tmp/${filename}"  2>&1  
+		reboot && exit 0 	
+	else
+		echo "$0 : More than one image found fitting to: "
+		echo "$0 :      modeltype: ${model_type} "
+		ls  ${new_image_location}/openwrt-*${model_type}*.bin 
+	fi
+else
+	 auto_flash_supported || echo "$0 : unsupported architecture for auto flash- ${DISTRIB_TARGET}"
+fi
 
 if ! /etc/init.d/ext enabled ; then
 	start_log
