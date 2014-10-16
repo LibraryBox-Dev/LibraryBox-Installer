@@ -32,6 +32,11 @@ On the USB Stick has to be located:
 		        /Package.gz_attitude_adjustment  - Package-List from public repository
 		   	/Package.gz_piratebox	- Package-List from PirateBox repository (optional)
 
+Optional stuff:
+
+<USB Stick>/stop.txt		- If you create that file, the auto_package file won't be processed
+				  during one boot 
+
 
 What happens
 -------------
